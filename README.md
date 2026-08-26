@@ -1,7 +1,7 @@
 <p align="center">
   <img src="/files/logo.png" alt="crewmemory logo" width="250" style="display: block; margin: 0 auto;">
   <br>
-  <strong style="font-size: 64px; display: block; text-align: center; margin-top: 15px;">Crew Memory</strong>
+  <strong style="font-size: 164px; display: block; text-align: center; margin-top: 15px;">#Crew Memory</strong>
 </p>
 
 **One shared memory for every AI coding agent on your team** — Claude Code, Codex, Cursor,
