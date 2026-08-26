@@ -1,7 +1,8 @@
-<div style="text-align: center;">
+<p align="center">
   <img src="/files/logo.png" alt="crewmemory logo" width="250" style="display: block; margin: 0 auto;">
-  <h1 style="font-size: 50px; margin-top: 15px;">Crew Memory</h1>
-</div>
+  <br>
+  <strong style="font-size: 80px; display: block; text-align: center; margin-top: 10px;">Crew Memory</strong>
+</p>
 
 **One shared memory for every AI coding agent on your team** — Claude Code, Codex, Cursor,
 Gemini CLI, opencode, Windsurf, Claude Desktop, or any MCP client.
