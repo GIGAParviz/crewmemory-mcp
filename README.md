@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="/files/logo.png" alt="crewmemory logo" width="120">
+</p>
+
 # Crew Memory
 
 **One shared memory for every AI coding agent on your team** — Claude Code, Codex, Cursor,
@@ -9,11 +13,7 @@ a decision, or what it's working on — your agent knows seconds later.
 
 No server to run. No cloud database. No lock-in: it's plain markdown + git.
 
-```
- your agent ─┐                                          ┌─ teammate A's agent
-             ├─▶ crewmemory MCP server ──git push/pull──▶  your git repo  ◀── teammate B's agent
- other agent ┘        (this project)                     └─ private repo = use a token
-```
+![crewmemory architecture](files/diagram.png)
 
 ---
 
