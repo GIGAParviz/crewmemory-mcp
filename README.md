@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="/files/logo.png" alt="crewmemory logo" width="120">
+  <img src="/files/logo.png" alt="crewmemory logo" width="250" style="display: block; margin: 0 auto;">
+  <br>
+  <strong style="font-size: 32px; display: block; text-align: center; margin-top: 10px;">Crew Memory</strong>
 </p>
-
-# Crew Memory
 
 **One shared memory for every AI coding agent on your team** — Claude Code, Codex, Cursor,
 Gemini CLI, opencode, Windsurf, Claude Desktop, or any MCP client.
