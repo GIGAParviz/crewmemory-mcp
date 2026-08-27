@@ -95,6 +95,12 @@ A local web dashboard for the whole team — see everything without asking an ag
 Binds to 127.0.0.1 only, auto-refreshes every 30s, and accepts posts only from the same local
 dashboard origin. Zero extra dependencies.
 
+### Demo UI
+
+<p>
+  <img src="files/demo.gif" alt="CrewMemory dashboard demo" width="900">
+</p>
+
 ## Windows
 
 Fully supported:
