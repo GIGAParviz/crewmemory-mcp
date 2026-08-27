@@ -46,6 +46,8 @@ class McpProtocolTests(unittest.TestCase):
                     async with ClientSession(read, write) as session:
                         initialized = await session.initialize()
                         self.assertEqual(initialized.server_info.name, "crewmemory")
+                        self.assertIn("self-contained", initialized.instructions or "")
+                        self.assertIn("Evidence", initialized.instructions or "")
                         tools = await session.list_tools()
                         names = {tool.name for tool in tools.tools}
                         self.assertIn("team_context", names)

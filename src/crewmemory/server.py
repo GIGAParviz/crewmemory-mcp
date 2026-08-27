@@ -18,6 +18,17 @@ from .models import KINDS, format_brief
 from .project import ProjectRepo, discover as discover_project
 from .store import Store, StoreError
 
+
+DETAILED_MEMORY_STANDARD = (
+    "Every TEAM entry must be self-contained and useful to a teammate who has not seen "
+    "this chat. Prefer 150-500 words when there is substantive material. Include only "
+    "known facts, in this order when applicable: Context (goal and scope); What changed "
+    "or was learned; Evidence (tests, commands, or observed results); Why and trade-offs; "
+    "Files or interfaces affected; Risks or limits; and Next steps. Do not pad routine "
+    "status updates and never invent facts. Link exact files, commits, errors, and "
+    "verification results when available."
+)
+
 mcp = MCPServer(
     name="crewmemory",
     instructions=(
@@ -36,7 +47,9 @@ mcp = MCPServer(
         "context budget.\n"
         "3. When you learn something durable — a fix, a decision + why, a gotcha, a pattern — SAVE "
         "it immediately with log_solution / log_decision / save_gotcha / save_pattern / save_note. "
-        "Link files=[...] when relevant; teammates' tools use those links for PR review and decay.\n"
+        "Link files=[...] when relevant; teammates' tools use those links for PR review and decay. "
+        + DETAILED_MEMORY_STANDARD
+        + "\n"
         "4. When you switch tasks, update update_status(task, progress_percent, blockers).\n"
         "5. At session end (user says done/bye or switches context) write save_handoff(summary, "
         "next_steps, blockers, open_questions) so the next session/developer continues smoothly.\n"
@@ -196,7 +209,12 @@ def memory_stats() -> str:
 @mcp.tool()
 @guard
 def save_note(title: str, content: str, tags: list[str] | None = None, files: list[str] | None = None, scope: str = "team") -> str:
-    """Save durable knowledge (conventions, environment quirks, how-to) to shared memory and push instantly. files=[] links related repo paths (enables PR review + decay tracking). scope='personal' keeps it private on this machine. NEVER store secrets."""
+    """Save durable, detailed knowledge to shared memory and push instantly.
+
+    Make ``content`` self-contained: explain context, durable learning, evidence, rationale or
+    trade-offs, affected files/interfaces, limitations, and next steps when applicable. ``files``
+    links related repo paths; ``scope='personal'`` keeps it private. NEVER store secrets.
+    """
     entry, warns = pick_store(scope).save_entry("note", title, content, tags or [], files=files)
     out = f"Saved note '{entry.title}' as {entry.id}"
     out += " (local only)" if scope == "personal" else " and pushed to GitHub"
@@ -206,7 +224,12 @@ def save_note(title: str, content: str, tags: list[str] | None = None, files: li
 @mcp.tool()
 @guard
 def log_decision(title: str, context: str, decision: str, rationale: str, tags: list[str] | None = None, files: list[str] | None = None) -> str:
-    """Record an architecture/tooling decision: what the situation was, what was decided, why, and which files it affects. Pushed instantly; teammates' agents will consult it."""
+    """Record a detailed architecture or tooling decision.
+
+    State the triggering context, chosen approach, viable alternatives or trade-offs, expected
+    impact, affected files/interfaces, and how the decision was verified or should be revisited.
+    Keep all claims grounded in known facts.
+    """
     body = f"## Context\n{context}\n\n## Decision\n{decision}\n\n## Rationale\n{rationale}"
     entry, warns = get_store().save_entry("decision", title, body, tags or [], files=files)
     return f"Logged decision '{entry.title}' as {entry.id} and pushed." + ("\n" + "\n".join(warns) if warns else "")
@@ -215,7 +238,12 @@ def log_decision(title: str, context: str, decision: str, rationale: str, tags: 
 @mcp.tool()
 @guard
 def log_solution(problem: str, solution: str, error_text: str = "", tags: list[str] | None = None, files: list[str] | None = None) -> str:
-    """Record a problem that was hit and its fix (build failures, weird bugs, env issues), optionally with raw error output, so nobody debugs it twice."""
+    """Record a reusable bug fix or troubleshooting solution.
+
+    Include reproduction conditions and symptoms, root cause when known, exact fix, affected
+    files/interfaces, validation performed, and remaining caveats or follow-up. Preserve useful
+    raw error text, but do not guess a root cause.
+    """
     title = problem.strip().splitlines()[0][:80]
     parts = [f"## Problem\n{problem}"]
     if error_text.strip():
@@ -228,7 +256,11 @@ def log_solution(problem: str, solution: str, error_text: str = "", tags: list[s
 @mcp.tool()
 @guard
 def save_gotcha(gotcha: str, details: str = "", tags: list[str] | None = None, files: list[str] | None = None) -> str:
-    """Save a small trap that cost time ('X breaks when Y', 'always Z before W'). Short and punchy."""
+    """Save a documented warning about a recurring pitfall.
+
+    Explain its trigger, symptoms, why it happens when known, safe mitigation, and recovery
+    verification. Keep the title short, but make ``details`` self-contained and useful.
+    """
     entry, warns = get_store().save_entry("gotcha", gotcha, details or gotcha, tags or [], files=files)
     return f"Saved gotcha '{entry.title}' as {entry.id} and pushed." + ("\n" + "\n".join(warns) if warns else "")
 
@@ -236,7 +268,11 @@ def save_gotcha(gotcha: str, details: str = "", tags: list[str] | None = None, f
 @mcp.tool()
 @guard
 def save_pattern(pattern_name: str, description: str, example: str = "", tags: list[str] | None = None, files: list[str] | None = None) -> str:
-    """Save a recurring codebase/project pattern others should follow ('how we add an endpoint', error-handling style...)."""
+    """Save a reusable project pattern or preferred implementation approach.
+
+    Describe when to use it, how to apply it, why it is preferred, affected interfaces, a
+    concrete example when available, and situations where it should not be used.
+    """
     body = description + (f"\n\n## Example\n{example}" if example else "")
     entry, warns = get_store().save_entry("pattern", pattern_name, body, tags or [], files=files)
     return f"Saved pattern '{entry.title}' as {entry.id} and pushed." + ("\n" + "\n".join(warns) if warns else "")
@@ -245,7 +281,12 @@ def save_pattern(pattern_name: str, description: str, example: str = "", tags: l
 @mcp.tool()
 @guard
 def save_handoff(summary: str, next_steps: str, blockers: list[str] | None = None, open_questions: list[str] | None = None) -> str:
-    """Write a session handoff: what was done, exact next steps, current blockers and open questions. The next session or teammate starts from this instead of zero."""
+    """Write a detailed session handoff for the next teammate or agent.
+
+    Include goal, completed work, current state, exact files changed, tests/results, remaining
+    risks, and precise next actions. Put blockers and unanswered questions in their dedicated
+    fields; never imply work was verified when it was not.
+    """
     parts = [f"## Summary\n{summary}", f"## Next steps\n{next_steps}"]
     if blockers:
         parts.append("## Blockers\n" + "\n".join(f"- {b}" for b in blockers))

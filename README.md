@@ -88,8 +88,10 @@ A local web dashboard for the whole team — see everything without asking an ag
 - **Memories** — browse & search all six types, filter by author/kind, expand full text
 - **Profiles** — member roles, timezones, git identities
 - **Overview** — counts by type/author/project/lifecycle + storage info
+- **Post a memory** — human-friendly form to publish a shared note, tags, and related files
 
-Read-only, binds to 127.0.0.1 only, auto-refreshes every 30s. Zero extra dependencies.
+Binds to 127.0.0.1 only, auto-refreshes every 30s, and accepts posts only from the same local
+dashboard origin. Zero extra dependencies.
 
 ## Windows
 
@@ -188,6 +190,15 @@ When switching tasks update update_status(); at day's end call save_handoff().
 ```
 
 Or just use the built-in prompts: `/session-start`, `/session-end`, `/pr-review-flow`.
+
+### Write memories that survive the next session
+
+For substantive team knowledge, write a self-contained entry of roughly 150–500 words rather
+than a one-line recap. Include the applicable parts of this checklist: context and goal; what
+changed or was learned; evidence (tests, commands, or observed result); rationale and trade-offs;
+affected files or interfaces; risks or limits; and precise next steps. Use exact paths, commits,
+error text, and verification results when available. Do not pad routine status updates or invent
+facts that were not verified.
 
 ## Security
 

@@ -50,6 +50,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0a0d12;border:1px sol
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;font-size:13px}
 .refresh{margin-left:auto;color:var(--muted);font-size:11px}
 .empty{color:var(--muted);text-align:center;padding:40px 0}
+.form{max-width:720px;margin:0 auto}.form label{display:block;margin:14px 0 5px;font-weight:600}.form input,.form textarea{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font:inherit}.form textarea{min-height:180px;resize:vertical}.form button{margin-top:14px;background:var(--accent);border:0;color:#07111f;font-weight:700;padding:9px 14px;border-radius:8px;cursor:pointer}.form button:disabled{opacity:.6;cursor:wait}.notice{margin-top:14px;padding:10px;border-radius:8px;background:#0a0d12;border:1px solid var(--border)}.notice.ok{border-color:var(--green)}.notice.error{border-color:var(--red);color:#ffb4ad}
 </style>
 </head>
 <body>
@@ -65,6 +66,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:#0a0d12;border:1px sol
   <button data-t="memories">Memories</button>
   <button data-t="profiles">Profiles</button>
   <button data-t="overview">Overview</button>
+  <button data-t="post">Post a memory</button>
 </nav>
 <main id="main"><div class="empty">Loading…</div></main>
 <script>
@@ -72,7 +74,7 @@ let DATA=null,TAB='now',FILTER='',KIND=null,AUTHOR=null;
 const $=s=>document.querySelector(s);
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{TAB=b.dataset.t;document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));render()});
 function esc(s){return (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function ago(iso){if(!iso)return '';const d=(Date.now()-new Date(iso.replace(' ','T')+'Z').getTime())/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return Math.floor(d/86400)+'d ago'}
+function ago(iso){if(!iso)return '';const value=iso.replace(' ','T');const ms=Date.parse(/[zZ]$|[+-]\d\d:\d\d$/.test(value)?value:value+'Z');if(!Number.isFinite(ms))return '';const d=(Date.now()-ms)/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return Math.floor(d/86400)+'d ago'}
 function load(){fetch('/api/all').then(r=>r.json()).then(j=>{DATA=j;$('#repo').textContent=j.repo_name;j.meta&&( $('#meta').textContent=`project ${j.meta.project||'-'} @ ${j.meta.branch||'-'} · you: ${j.meta.user}`);$('#refreshed').textContent='updated '+new Date().toLocaleTimeString();render()}).catch(()=>{$('#refreshed').textContent='offline'})}
 function render(){
  const m=$('#main');
@@ -132,6 +134,17 @@ function render(){
    <div class="card"><h3>Storage</h3><div class="kv"><span class="muted">team repo</span><span>${esc(DATA.repo_name)}</span><span class="muted">branch</span><span>${esc(DATA.team_branch||'-')}</span><span class="muted">local clone</span><span style="word-break:break-all">${esc(DATA.team_local||'-')}</span><span class="muted">personal dir</span><span style="word-break:break-all">${esc(DATA.personal_local||'-')}</span></div></div>
    </div>`;
  }
+ if(TAB==='post'){
+   m.innerHTML=`<form class="card form" id="post-form">
+     <h3>Post a crew memory</h3><p class="muted">This creates a shared note and pushes it to the configured Git repository. Never post passwords, tokens, or private customer data.</p>
+     <label for="post-title">Title</label><input id="post-title" maxlength="200" required placeholder="What should the crew remember?">
+     <label for="post-content">Memory</label><textarea id="post-content" maxlength="20000" required placeholder="Write the useful context, decision, or discovery…"></textarea>
+     <label for="post-tags">Tags <span class="muted">(comma-separated, optional)</span></label><input id="post-tags" maxlength="1000" placeholder="setup, release, api">
+     <label for="post-files">Related files <span class="muted">(comma-separated, optional)</span></label><input id="post-files" maxlength="4000" placeholder="src/app.py, README.md">
+     <button type="submit">Post to crew memory</button><div id="post-result" aria-live="polite"></div>
+   </form>`;
+   $('#post-form').onsubmit=async e=>{e.preventDefault();const button=e.currentTarget.querySelector('button');const result=$('#post-result');button.disabled=true;result.className='notice';result.textContent='Saving and pushing…';try{const payload={title:$('#post-title').value,content:$('#post-content').value,tags:$('#post-tags').value.split(',').map(x=>x.trim()).filter(Boolean),files:$('#post-files').value.split(',').map(x=>x.trim()).filter(Boolean)};const r=await fetch('/api/posts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok)throw new Error(j.error||'Could not save the post.');result.className='notice ok';result.textContent=j.message;$('#post-form').reset();load()}catch(err){result.className='notice error';result.textContent=err.message}finally{button.disabled=false}};
+ }
 }
 load();setInterval(load,30000);
 </script>
@@ -182,6 +195,30 @@ class UiServer:
                 "team_branch": "", "team_local": "", "personal_local": "", "meta": {},
             }
 
+    def create_post(self, payload: object) -> dict:
+        if not isinstance(payload, dict):
+            raise ValueError("Request body must be a JSON object.")
+        title = str(payload.get("title", "")).strip()
+        content = str(payload.get("content", "")).strip()
+        tags = payload.get("tags", [])
+        files = payload.get("files", [])
+        if not title or not content:
+            raise ValueError("Title and memory are required.")
+        if len(title) > 200 or len(content) > 20_000:
+            raise ValueError("Title or memory is too long.")
+        if not isinstance(tags, list) or not isinstance(files, list):
+            raise ValueError("Tags and files must be lists.")
+        if len(tags) > 32 or len(files) > 100:
+            raise ValueError("Too many tags or files.")
+        tags = [str(tag).strip()[:80] for tag in tags if str(tag).strip()]
+        files = [str(path).strip()[:500] for path in files if str(path).strip()]
+        cfg = load_config()
+        entry, warnings = Store(cfg).save_entry("note", title, content, tags, files=files)
+        message = f"Posted '{entry.title}' as {entry.id} and pushed to GitHub."
+        if warnings:
+            message += " " + " ".join(warnings)
+        return {"message": message, "id": entry.id}
+
     def handler(self):
         outer = self
 
@@ -208,6 +245,26 @@ class UiServer:
                     self._send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json")
                 else:
                     self._send(404, b"not found", "text/plain")
+
+            def do_POST(self):
+                if urlparse(self.path).path != "/api/posts":
+                    self._send(404, b"not found", "text/plain")
+                    return
+                origin = self.headers.get("Origin", "")
+                host = self.headers.get("Host", "")
+                if origin and origin != f"http://{host}":
+                    self._send(403, b'{"error":"cross-origin request denied"}', "application/json")
+                    return
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 30_000:
+                        raise ValueError("Invalid request size.")
+                    payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                    result = outer.create_post(payload)
+                    outer.reload()
+                    self._send(201, json.dumps(result, ensure_ascii=False).encode("utf-8"), "application/json")
+                except (ValueError, UnicodeDecodeError, json.JSONDecodeError, ConfigError, StoreError) as exc:
+                    self._send(400, json.dumps({"error": str(exc)}, ensure_ascii=False).encode("utf-8"), "application/json")
 
         return H
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import tempfile
+import urllib.error
 import unittest
 import urllib.request
 from pathlib import Path
@@ -81,12 +82,45 @@ class DashboardHttpTests(unittest.TestCase):
                         html = resp.read().decode("utf-8")
                     self.assertIn("Crew Memory", html)
                     self.assertIn("/api/all", html)
+                    self.assertIn("Post a memory", html)
+                    self.assertIn("Date.parse", html)
+                    self.assertIn("Number.isFinite", html)
 
                     with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/all") as resp:
                         payload = json.loads(resp.read().decode("utf-8"))
                     self.assertIn("entries", payload["team"])
                     self.assertIn("statuses", payload["team"])
                     self.assertIn("repo_name", payload)
+
+                    request = urllib.request.Request(
+                        f"http://127.0.0.1:{port}/api/posts",
+                        data=json.dumps({
+                            "title": "UI post",
+                            "content": "saved through the dashboard",
+                            "tags": ["demo"],
+                            "files": ["README.md"],
+                        }).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(request) as resp:
+                        created = json.loads(resp.read().decode("utf-8"))
+                    self.assertIn("pushed to GitHub", created["message"])
+
+                    with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/all") as resp:
+                        updated = json.loads(resp.read().decode("utf-8"))
+                    self.assertIn("UI post", [entry["title"] for entry in updated["team"]["entries"]])
+
+                    blocked = urllib.request.Request(
+                        f"http://127.0.0.1:{port}/api/posts",
+                        data=b"{}",
+                        headers={"Content-Type": "application/json", "Origin": "https://example.test"},
+                        method="POST",
+                    )
+                    with self.assertRaises(urllib.error.HTTPError) as denied:
+                        urllib.request.urlopen(blocked)
+                    self.assertEqual(denied.exception.code, 403)
+                    denied.exception.close()
                 finally:
                     if env_backup is None:
                         os.environ.pop("CREWMEMORY_REPO_URL", None)
