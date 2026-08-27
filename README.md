@@ -1,19 +1,21 @@
 <p align="center">
-  <img src="/files/logo.png" alt="crewmemory logo" width="120">
+  <img src="files/logo.png" alt="CrewMemory logo" width="300">
 </p>
 
-# Crew Memory
+<h1 align="center">CrewMemory</h1>
 
-**One shared memory for every AI coding agent on your team** — Claude Code, Codex, Cursor,
-Gemini CLI, opencode, Windsurf, Claude Desktop, or any MCP client.
+<p align="center"><strong>One shared memory for every AI coding agent on your team</strong><br>
+Claude Code, Codex, Cursor, Gemini CLI, opencode, Windsurf, Claude Desktop, or any MCP client.</p>
 
-Memory lives in a git repo you own (GitHub or any git host). Every save is automatically
+<p align="center">Memory lives in a git repo you own (GitHub or any git host). Every save is automatically
 committed and pushed; every read pulls the latest first. When your teammate's agent logs a fix,
-a decision, or what it's working on — your agent knows seconds later.
+a decision, or what it's working on — your agent knows seconds later.</p>
 
-No server to run. No cloud database. No lock-in: it's plain markdown + git.
+<p align="center">No server to run. No cloud database. No lock-in: it's plain markdown + git.</p>
 
-![crewmemory architecture](files/diagram.png)
+<p align="center">
+  <img src="files/workflow.gif" alt="CrewMemory shared memory workflow" width="720">
+</p>
 
 ---
 
@@ -143,6 +145,12 @@ calls run with `GIT_TERMINAL_PROMPT=0` so nothing hangs waiting for input.
 - **Per-project memory**: entries are tagged with the detected project slug; status shows project@branch
 - **Faceted search**: tags, author, file, type, project (semantic search: future work)
 - **MCP-based**, stdio transport, self-hosted/open-source by default
+
+## Architecture
+
+<p>
+  <img src="files/diagram.png" alt="CrewMemory architecture" width="760">
+</p>
 
 ## Repo layout (created automatically)
 
